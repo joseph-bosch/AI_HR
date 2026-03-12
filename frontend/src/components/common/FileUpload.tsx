@@ -3,7 +3,7 @@ import { Upload, File, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
-const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } };
+const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } } };
 
 interface FileUploadProps {
   onFilesSelected: (files: File[]) => void;

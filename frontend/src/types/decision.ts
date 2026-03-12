@@ -32,6 +32,8 @@ export interface InterviewDecision {
   decision_reason: string | null;
   generated_report: DecisionReport | null;
   generation_model: string | null;
+  primary_language: string | null;
+  report_translations: Record<string, Partial<DecisionReport>> | null;
   created_at: string;
   updated_at: string;
 }

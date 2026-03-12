@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import type { QuestionItem } from '../../types/questionSet';
 
 const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
-const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } };
+const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } } };
 
 /** Returns a field value in the requested language, falling back to the primary field. */
 function getField(item: QuestionItem, field: keyof QuestionItem, lang: string, primaryLang: string): string | null {
@@ -37,7 +37,7 @@ export default function QuestionSetViewPage() {
   });
 
   const handleExportPdf = async () => {
-    const blob = await questionSetsApi.exportPdf(id!);
+    const blob = await questionSetsApi.exportPdf(id!, i18n.language);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -126,7 +126,7 @@ export default function QuestionSetViewPage() {
                     {rubric && (
                       <div>
                         <p className="text-xs font-semibold text-slate-500 uppercase mb-1">{t('questions.scoringRubric')}</p>
-                        <div className="grid grid-cols-5 gap-1 text-xs">
+                        <div className={`grid gap-1 text-xs`} style={{ gridTemplateColumns: `repeat(${Object.keys(rubric).length}, minmax(0, 1fr))` }}>
                           {Object.entries(rubric).map(([score, desc]) => (
                             <div key={score} className="bg-slate-50 p-2 rounded text-center">
                               <span className="font-bold text-slate-900">{score}</span>

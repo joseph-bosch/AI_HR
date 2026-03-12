@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
@@ -9,7 +9,7 @@ const pageVariants = {
 
 const pageTransition = {
   type: 'tween' as const,
-  ease: 'easeOut',
+  ease: 'easeOut' as const,
   duration: 0.3,
 };
 

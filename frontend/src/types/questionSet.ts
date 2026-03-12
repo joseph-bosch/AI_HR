@@ -52,4 +52,6 @@ export type QuestionItemCreate = Pick<QuestionItem, 'category' | 'question_text'
   is_required?: number;
 };
 
-export type QuestionItemUpdate = Partial<QuestionItemCreate>;
+export type QuestionItemUpdate = Partial<QuestionItemCreate> & {
+  translations?: Record<string, QuestionItemTranslation> | null;
+};

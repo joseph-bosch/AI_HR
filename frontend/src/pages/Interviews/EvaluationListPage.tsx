@@ -11,7 +11,7 @@ import Card3D from '../../components/common/Card3D';
 import { useTranslation } from 'react-i18next';
 
 const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
-const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } };
+const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } } };
 
 export default function EvaluationListPage() {
   const { t, i18n } = useTranslation();

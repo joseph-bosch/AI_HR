@@ -1,6 +1,9 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.database import get_db
 from app.models.candidate import Candidate, Resume, ScreeningScore
@@ -10,7 +13,33 @@ from app.schemas.candidate import (
     CandidateWithScore, CandidateResponse, ResumeResponse, ShortlistRequest,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+
+
+def _candidate_identity_key(candidate: Candidate | None) -> str | None:
+    """Build a dedup key from a candidate's email or name.
+
+    Returns None if there is no identifying info yet (e.g. resume still parsing).
+    Handles Chinese names where the full name is stored in first_name only
+    (no space to split on), as well as standard first+last name formats.
+    """
+    if not candidate:
+        return None
+    if candidate.email:
+        return f"email:{candidate.email.lower().strip()}"
+    # Build name key from whatever name fields are available.
+    # Chinese names like "袁笑" end up as first_name="袁笑", last_name=None
+    # because there is no space to split on in resume_parser.
+    name_parts: list[str] = []
+    if candidate.first_name:
+        name_parts.append(candidate.first_name.lower().strip())
+    if candidate.last_name:
+        name_parts.append(candidate.last_name.lower().strip())
+    if name_parts:
+        return f"name:{'|'.join(name_parts)}"
+    return None
 
 
 async def _score_candidate_background(job_id: str, candidate_id: str, resume_id: str, language: str = "en"):
@@ -30,16 +59,24 @@ async def _score_candidate_background(job_id: str, candidate_id: str, resume_id:
             )
             score_id = result.scalar_one_or_none()
         except Exception:
-            result = await db.execute(
-                select(ScreeningScore).where(
-                    ScreeningScore.job_id == job_id,
-                    ScreeningScore.candidate_id == candidate_id,
-                )
+            logger.exception(
+                "Screening failed for job_id=%s candidate_id=%s resume_id=%s",
+                job_id, candidate_id, resume_id,
             )
-            score = result.scalar_one_or_none()
-            if score:
-                score.status = "failed"
-                await db.commit()
+            await db.rollback()
+            try:
+                result = await db.execute(
+                    select(ScreeningScore).where(
+                        ScreeningScore.job_id == job_id,
+                        ScreeningScore.candidate_id == candidate_id,
+                    )
+                )
+                score = result.scalar_one_or_none()
+                if score:
+                    score.status = "failed"
+                    await db.commit()
+            except Exception:
+                logger.exception("Failed to mark screening score as failed")
 
     if score_id:
         await translate_screening_score(score_id)
@@ -92,6 +129,9 @@ async def score_single(
     await db.flush()
     await db.refresh(score)
 
+    # Commit NOW so the background task's independent session can find this record
+    await db.commit()
+
     lang = data.language or "en"
     background_tasks.add_task(
         _score_candidate_background, data.job_id, data.candidate_id, resume.id, lang
@@ -110,14 +150,25 @@ async def score_batch(
     resume_query = (
         select(Resume)
         .where(Resume.parse_status == "completed")
+        .options(joinedload(Resume.candidate))
         .order_by(Resume.created_at.desc())
     )
     resume_result = await db.execute(resume_query)
-    resumes = resume_result.scalars().all()
+    resumes = resume_result.scalars().unique().all()
 
     lang = data.language or "en"
+    seen_candidate_ids: set[str] = set()
+    seen_persons: set[str] = set()
     count = 0
     for resume in resumes:
+        if resume.candidate_id in seen_candidate_ids:
+            continue
+
+        # Skip archived candidates
+        if resume.candidate and resume.candidate.is_archived:
+            seen_candidate_ids.add(resume.candidate_id)
+            continue
+
         existing = await db.execute(
             select(ScreeningScore).where(
                 ScreeningScore.job_id == data.job_id,
@@ -125,7 +176,26 @@ async def score_batch(
             )
         )
         if existing.scalar_one_or_none():
+            seen_candidate_ids.add(resume.candidate_id)
+            # Register identity so duplicate candidates (same person, diff id) are also skipped
+            identity_key = _candidate_identity_key(resume.candidate)
+            if identity_key:
+                seen_persons.add(identity_key)
             continue
+
+        # Deduplicate by person identity (email or full name), not just candidate_id
+        identity_key = _candidate_identity_key(resume.candidate)
+        if identity_key and identity_key in seen_persons:
+            logger.info(
+                "Skipping duplicate person in batch scoring: candidate_id=%s (identity=%s)",
+                resume.candidate_id, identity_key,
+            )
+            seen_candidate_ids.add(resume.candidate_id)
+            continue
+
+        if identity_key:
+            seen_persons.add(identity_key)
+        seen_candidate_ids.add(resume.candidate_id)
 
         score = ScreeningScore(
             job_id=data.job_id,
@@ -142,6 +212,9 @@ async def score_batch(
             _score_candidate_background, data.job_id, resume.candidate_id, resume.id, lang
         )
         count += 1
+
+    # Commit all scores so background tasks' independent sessions can find them
+    await db.commit()
 
     return {"status": "ok", "message": f"Scoring started for {count} candidates"}
 
@@ -160,13 +233,46 @@ async def rescore_job(
     await db.execute(delete(ScreeningScore).where(ScreeningScore.job_id == job_id))
     await db.commit()
 
+    # Use only the latest resume per UNIQUE PERSON (ordered newest-first).
+    # Join with Candidate so we can deduplicate by email/name, not just candidate_id.
     resume_result = await db.execute(
-        select(Resume).where(Resume.parse_status == "completed").order_by(Resume.created_at.desc())
+        select(Resume)
+        .where(Resume.parse_status == "completed")
+        .options(joinedload(Resume.candidate))
+        .order_by(Resume.created_at.desc())
     )
-    resumes = resume_result.scalars().all()
+    resumes = resume_result.scalars().unique().all()
 
+    seen_candidate_ids: set[str] = set()
+    seen_persons: set[str] = set()
     count = 0
+    skipped_dupes = 0
     for resume in resumes:
+        if resume.candidate_id in seen_candidate_ids:
+            continue
+
+        # Skip archived candidates
+        if resume.candidate and resume.candidate.is_archived:
+            seen_candidate_ids.add(resume.candidate_id)
+            continue
+
+        # Deduplicate by person identity (email or full name), not just candidate_id.
+        # This catches the case where the same person was uploaded multiple times
+        # creating separate Candidate records with different UUIDs.
+        identity_key = _candidate_identity_key(resume.candidate)
+        if identity_key and identity_key in seen_persons:
+            logger.info(
+                "Skipping duplicate person in rescore: candidate_id=%s (identity=%s already queued)",
+                resume.candidate_id, identity_key,
+            )
+            seen_candidate_ids.add(resume.candidate_id)
+            skipped_dupes += 1
+            continue
+
+        if identity_key:
+            seen_persons.add(identity_key)
+        seen_candidate_ids.add(resume.candidate_id)
+
         score = ScreeningScore(
             job_id=job_id,
             candidate_id=resume.candidate_id,
@@ -181,7 +287,10 @@ async def rescore_job(
         count += 1
 
     await db.commit()
-    return {"status": "ok", "message": f"Re-scoring started for {count} candidates"}
+    msg = f"Re-scoring started for {count} candidates"
+    if skipped_dupes:
+        msg += f" ({skipped_dupes} duplicate(s) skipped)"
+    return {"status": "ok", "message": msg}
 
 
 @router.get("/job/{job_id}/rankings", response_model=list[ScreeningScoreResponse])
@@ -192,7 +301,8 @@ async def get_rankings(
 ):
     query = (
         select(ScreeningScore)
-        .where(ScreeningScore.job_id == job_id)
+        .join(Candidate, ScreeningScore.candidate_id == Candidate.id)
+        .where(ScreeningScore.job_id == job_id, Candidate.is_archived == False)  # noqa: E712
         .order_by(ScreeningScore.overall_score.desc())
     )
     if top_n:
@@ -256,7 +366,7 @@ async def shortlist_candidates(
             select(Candidate).where(Candidate.id == score.candidate_id)
         )
         candidate = cand_result.scalar_one_or_none()
-        if candidate:
+        if candidate and not candidate.is_archived:
             candidate.status = "shortlisted"
             shortlisted.append(candidate.id)
 

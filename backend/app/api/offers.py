@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,9 +15,11 @@ router = APIRouter()
 @router.post("/generate", response_model=OfferResponse, status_code=201)
 async def generate_offer(
     data: OfferGenerateRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     from app.services.offer_service import generate_offer_letter
+    from app.services.translation_service import translate_offer_content
 
     # Verify all entities exist
     job_result = await db.execute(
@@ -42,9 +44,10 @@ async def generate_offer(
         raise HTTPException(status_code=404, detail="Template not found")
 
     content, model_used = await generate_offer_letter(
-        template, job, candidate, data.offer_data
+        template, job, candidate, data.offer_data, language=data.language
     )
 
+    lang = data.language or "en"
     offer = GeneratedOffer(
         job_id=data.job_id,
         candidate_id=data.candidate_id,
@@ -53,10 +56,13 @@ async def generate_offer(
         offer_data=data.offer_data,
         status="draft",
         generation_model=model_used,
+        primary_language=lang,
     )
     db.add(offer)
     await db.flush()
     await db.refresh(offer)
+
+    background_tasks.add_task(translate_offer_content, offer.id)
     return offer
 
 

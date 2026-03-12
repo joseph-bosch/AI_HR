@@ -16,7 +16,8 @@ Return JSON matching this structure:
     "location": "City/State/Country or null",
     "linkedin": "LinkedIn URL or null"
   }},
-  "summary": "Professional summary if present, or null",
+  "summary": "Professional summary in the SAME LANGUAGE as the resume content. If the resume contains one, extract it as-is. If NOT, generate a concise 2-3 sentence summary highlighting the candidate's key expertise, years of experience, and career focus. IMPORTANT: write the summary in the same language the resume is written in (e.g. Chinese resume → Chinese summary, English resume → English summary). Never return null.",
+  "detected_language": "The ISO 639-1 language code of the resume content (e.g. 'en' for English, 'zh' for Chinese). Detect from the main body text.",
   "skills": ["skill1", "skill2", ...],
   "experience": [
     {{

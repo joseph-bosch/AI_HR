@@ -29,6 +29,7 @@ class QuestionItemUpdate(BaseModel):
     good_answer_indicators: str | None = None
     red_flags: str | None = None
     scoring_rubric: dict | None = None
+    translations: dict | None = None
     is_required: int | None = None
 
 

@@ -9,7 +9,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import AnimatedPage from '../../components/common/AnimatedPage';
 
 const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
-const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } };
+const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } } };
 
 export default function JobListPage() {
   const { t } = useTranslation();

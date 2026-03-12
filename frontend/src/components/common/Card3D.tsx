@@ -1,5 +1,5 @@
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { ReactNode, useRef } from 'react';
+import { type ReactNode, useRef } from 'react';
 
 interface Card3DProps {
   children: ReactNode;

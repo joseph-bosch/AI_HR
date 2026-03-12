@@ -13,7 +13,7 @@ import AnimatedPage from '../../components/common/AnimatedPage';
 import { useTranslation } from 'react-i18next';
 
 const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
-const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } };
+const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } } };
 
 export default function CandidateRankingPage() {
   const { t, i18n } = useTranslation();
@@ -279,7 +279,7 @@ export default function CandidateRankingPage() {
             initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.92 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+            transition={{ type: 'spring' as const, stiffness: 320, damping: 26 }}
             onClick={e => e.stopPropagation()}
             className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full mx-4"
           >

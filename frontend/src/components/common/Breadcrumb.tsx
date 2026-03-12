@@ -54,6 +54,7 @@ export default function Breadcrumb() {
     generate: t('breadcrumb.generate'),
     templates: t('breadcrumb.templates'),
     questions: t('breadcrumb.questions'),
+    candidates: t('breadcrumb.candidates'),
   };
 
   const jobIdFromUrl = segments.find((seg, i) => {
@@ -92,8 +93,11 @@ export default function Breadcrumb() {
     segments[1] === 'candidate' &&
     segments[2] && UUID_RE.test(segments[2])
   ) {
+    const fromPage = (state as { from?: string } | null)?.from;
     const crumbs: Crumb[] = [{ label: t('breadcrumb.home'), href: '/' }];
-    if (jobIdFromState) {
+    if (fromPage === 'candidates') {
+      crumbs.push({ label: t('breadcrumb.candidates'), href: '/candidates' });
+    } else if (jobIdFromState) {
       crumbs.push({ label: t('breadcrumb.jobs'), href: '/jobs' });
       crumbs.push({ label: job?.title ?? t('breadcrumb.job'), href: `/jobs/${jobIdFromState}` });
       crumbs.push({ label: t('breadcrumb.screening'), href: `/screening/job/${jobIdFromState}` });

@@ -10,11 +10,11 @@ import AnimatedPage from '../../components/common/AnimatedPage';
 import { useTranslation } from 'react-i18next';
 
 export default function OfferGeneratePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [jobId, setJobId] = useState(searchParams.get('jobId') || '');
-  const [candidateId, setCandidateId] = useState('');
+  const [jobId, setJobId] = useState(searchParams.get('job_id') || searchParams.get('jobId') || '');
+  const [candidateId, setCandidateId] = useState(searchParams.get('candidate_id') || '');
   const [templateId, setTemplateId] = useState('');
   const [offerData, setOfferData] = useState({
     salary: '', start_date: '', benefits: '', signing_bonus: '', manager_name: '',
@@ -28,6 +28,7 @@ export default function OfferGeneratePage() {
     mutationFn: () => offersApi.generate({
       job_id: jobId, candidate_id: candidateId, template_id: templateId,
       offer_data: Object.fromEntries(Object.entries(offerData).filter(([_, v]) => v)),
+      language: i18n.language,
     }),
     onSuccess: (data) => navigate(`/offers/${data.id}/edit`),
   });

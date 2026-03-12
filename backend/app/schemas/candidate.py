@@ -33,6 +33,8 @@ class CandidateResponse(BaseModel):
     status: str
     source: str | None
     notes: str | None
+    is_archived: bool
+    archived_at: datetime | None
     created_at: datetime
     updated_at: datetime
 
@@ -49,6 +51,8 @@ class ResumeResponse(BaseModel):
     anonymized_data: dict | None
     parse_status: str
     parse_error: str | None
+    primary_language: str | None
+    parsed_translations: dict | None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -68,6 +72,7 @@ class ScreeningScoreResponse(BaseModel):
     weaknesses: list[str] | None
     recommendation: str | None
     scoring_model: str | None
+    additional_insights: dict | None
     status: str
     primary_language: str | None
     score_translations: dict | None

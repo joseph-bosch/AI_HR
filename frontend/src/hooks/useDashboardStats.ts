@@ -22,10 +22,13 @@ export function useDashboardStats() {
     queryFn: () => jobsApi.list(),
   });
 
-  const { data: candidates, isLoading: candidatesLoading } = useQuery({
-    queryKey: ['candidates'],
-    queryFn: () => candidatesApi.list(),
+  const { data: allCandidates, isLoading: candidatesLoading } = useQuery({
+    queryKey: ['candidates', 'withArchived'],
+    queryFn: () => candidatesApi.list({ include_archived: true }),
   });
+
+  const candidates = allCandidates?.filter(c => !c.is_archived);
+  const archivedCandidates = allCandidates?.filter(c => c.is_archived).length ?? 0;
 
   const openJobs = jobs?.filter(j => j.status === 'open') ?? [];
 
@@ -59,8 +62,8 @@ export function useDashboardStats() {
   const avgScore = scoreCount > 0 ? Math.round(scoreSum / scoreCount) : 0;
 
   // Build candidate count by pipeline status
+  // "new" and "screening" are merged into a single "screening" bar
   const statusConfig: { status: string; label: string; color: string }[] = [
-    { status: 'new',          label: 'New',        color: '#6366f1' },
     { status: 'screening',   label: 'Screening',   color: '#8b5cf6' },
     { status: 'shortlisted', label: 'Shortlisted', color: '#0ea5e9' },
     { status: 'interviewing',label: 'Interview',   color: '#f59e0b' },
@@ -74,7 +77,9 @@ export function useDashboardStats() {
     for (const s of statusConfig) counts[s.status] = 0;
     if (candidates) {
       for (const c of candidates) {
-        if (counts[c.status] !== undefined) counts[c.status]++;
+        // Merge "new" candidates into the "screening" bar
+        const mapped = c.status === 'new' ? 'screening' : c.status;
+        if (counts[mapped] !== undefined) counts[mapped]++;
       }
     }
     return statusConfig.map(s => ({ ...s, count: counts[s.status] }));
@@ -83,6 +88,7 @@ export function useDashboardStats() {
   return {
     openJobs: openJobs.length,
     totalCandidates: candidates?.length ?? 0,
+    archivedCandidates,
     screenedCandidates,
     shortlistedCandidates,
     avgScore,

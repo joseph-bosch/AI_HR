@@ -148,6 +148,8 @@ async def generate_decision_report(pipeline_id: str, db: AsyncSession, language:
 
     if decision:
         decision.generated_report = report_data
+        decision.primary_language = language
+        decision.report_translations = None  # Clear stale translations on regeneration
         if response.model:
             decision.generation_model = response.model
     else:
@@ -157,6 +159,7 @@ async def generate_decision_report(pipeline_id: str, db: AsyncSession, language:
             candidate_id=pipeline.candidate_id,
             generated_report=report_data,
             generation_model=response.model,
+            primary_language=language,
         )
         db.add(decision)
 
@@ -165,10 +168,17 @@ async def generate_decision_report(pipeline_id: str, db: AsyncSession, language:
     return decision
 
 
+_CHATBOT_LANGUAGE_INSTRUCTIONS = {
+    "zh": "\n\nIMPORTANT: Always respond in Chinese (Simplified).",
+    "en": "\n\nIMPORTANT: Always respond in English.",
+}
+
+
 def build_salary_chatbot_context(
     decision: InterviewDecision,
     job: JobRequisition,
     candidate_name: str,
+    language: str = "en",
 ) -> str:
     """Build the system prompt for the salary/negotiation chatbot."""
     report = decision.generated_report or {}
@@ -187,6 +197,8 @@ def build_salary_chatbot_context(
         if sal_range and len(sal_range) == 2
         else "Not available"
     )
+
+    lang_instruction = _CHATBOT_LANGUAGE_INSTRUCTIONS.get(language, _CHATBOT_LANGUAGE_INSTRUCTIONS["en"])
 
     context = f"""You are an expert HR compensation advisor helping finalize the offer for {candidate_name}.
 
@@ -207,6 +219,6 @@ CANDIDATE RISKS: {report.get('risk_summary', '')}
 
 Your role: Help HR answer questions about salary negotiation, offer structuring, total compensation, \
 and how to handle candidate counter-offers for this specific role and candidate. \
-Base your advice on the data above. Be practical, specific, and concise."""
+Base your advice on the data above. Be practical, specific, and concise.{lang_instruction}"""
 
     return context

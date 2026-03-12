@@ -19,6 +19,7 @@ import QuestionSetListPage from './pages/Questions/QuestionSetListPage';
 import QuestionSetGeneratePage from './pages/Questions/QuestionSetGeneratePage';
 import QuestionSetEditPage from './pages/Questions/QuestionSetEditPage';
 import QuestionSetViewPage from './pages/Questions/QuestionSetViewPage';
+import CandidateListPage from './pages/Candidates/CandidateListPage';
 import PipelinePage from './pages/Pipeline/PipelinePage';
 import DecisionPage from './pages/Pipeline/DecisionPage';
 
@@ -34,6 +35,9 @@ function App() {
           <Route path="/jobs/new" element={<JobFormPage />} />
           <Route path="/jobs/:id" element={<JobDetailPage />} />
           <Route path="/jobs/:id/edit" element={<JobFormPage />} />
+
+          {/* Candidates */}
+          <Route path="/candidates" element={<CandidateListPage />} />
 
           {/* Screening - Module A */}
           <Route path="/screening" element={<ScreeningPage />} />

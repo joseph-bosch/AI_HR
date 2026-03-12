@@ -42,7 +42,7 @@ export interface ResolveDuplicateRequest {
 }
 
 export const candidatesApi = {
-  list: (params?: { status?: string; page?: number }) =>
+  list: (params?: { status?: string; page?: number; search?: string; include_archived?: boolean }) =>
     api.get<Candidate[]>('/candidates', { params }).then(r => r.data),
 
   get: (id: string) =>
@@ -75,6 +75,12 @@ export const candidatesApi = {
 
   delete: (candidateId: string) =>
     api.delete(`/candidates/${candidateId}`).then(r => r.data),
+
+  archive: (candidateId: string) =>
+    api.post<Candidate>(`/candidates/${candidateId}/archive`).then(r => r.data),
+
+  unarchive: (candidateId: string) =>
+    api.post<Candidate>(`/candidates/${candidateId}/unarchive`).then(r => r.data),
 
   checkDuplicates: (job_id: string, candidate_ids: string[]) =>
     api.post<{ duplicates: DuplicateInfo[] }>('/candidates/check-duplicates', { job_id, candidate_ids })

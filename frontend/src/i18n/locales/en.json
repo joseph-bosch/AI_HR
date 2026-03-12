@@ -8,6 +8,7 @@
     "offers": "Offers",
     "questions": "Questions",
     "hiringProcesses": "Hiring Processes",
+    "candidates": "Manage Candidates",
     "footer": "AI-Powered HR System v1.0"
   },
   "common": {
@@ -47,6 +48,7 @@
     "templates": "Templates",
     "questions": "Questions",
     "candidateProfile": "Candidate Profile",
+    "candidates": "Manage Candidates",
     "questionSet": "Question Set",
     "template": "Template",
     "offer": "Offer",
@@ -71,6 +73,7 @@
       "candidates": "Candidates",
       "screened": "Screened",
       "shortlisted": "Shortlisted",
+      "archived": "Archived",
       "status": {
         "new": "New",
         "screening": "Screening",
@@ -380,7 +383,7 @@
       "totalAllocated": "Allocating: {{allocated}} questions"
     },
     "generateBtn": "Generate Questions with AI",
-    "generating": "Generating (this may take 30-60 seconds)...",
+    "generating": "Generating (this may take 1-3 minutes)...",
     "questionCount": "{{count}} questions",
     "viewRubrics": "View Full Question Set with Rubrics",
     "editTitle": "Edit Question Set",
@@ -408,7 +411,8 @@
     "chatTitle": "Question Assistant",
     "chatWelcome": "Hi! I can help you improve this question set. Ask me to add questions, refine existing ones, or remove redundant ones.",
     "chatPlaceholder": "Ask me to add, improve, or remove questions...",
-    "chatApplying": "Applying changes to question set..."
+    "chatApplying": "Applying changes to question set...",
+    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This will remove all questions in this set and cannot be undone."
   },
   "pipeline": {
     "title": "Interview Pipeline",
@@ -509,5 +513,23 @@
     "chatPlaceholder": "Ask about salary negotiation, offer details, compensation benchmarks...",
     "chatInputPlaceholder": "Ask about salary or offer terms...",
     "chatAfterGenerate": "Generate the AI report first to enable the salary chatbot."
+  },
+  "candidates": {
+    "title": "Manage Candidates",
+    "noCandidates": "No candidates found.",
+    "searchPlaceholder": "Search by name or email...",
+    "showArchived": "Show Archived",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "archived": "Archived",
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "status": "Status",
+      "source": "Source",
+      "created": "Created",
+      "actions": "Actions"
+    }
   }
 }

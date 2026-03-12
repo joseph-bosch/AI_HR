@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class LLMResponse(BaseModel):
     content: str
-    parsed: dict[str, Any] | None = None
+    parsed: dict[str, Any] | list | None = None
     model: str
     prompt_tokens: int | None = None
     completion_tokens: int | None = None

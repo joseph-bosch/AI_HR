@@ -4,7 +4,7 @@ from app.models.offer import OfferTemplate
 from app.models.job import JobRequisition
 from app.models.candidate import Candidate
 from app.llm.factory import get_llm_provider
-from app.llm.prompts.offer_letter import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
+from app.llm.prompts.offer_letter import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE, LANGUAGE_INSTRUCTIONS
 
 
 async def generate_offer_letter(
@@ -12,6 +12,7 @@ async def generate_offer_letter(
     job: JobRequisition,
     candidate: Candidate,
     offer_data: dict,
+    language: str | None = None,
 ) -> tuple[str, str]:
     """Generate an offer letter from template + AI polishing. Returns (content, model_used)."""
     candidate_name = f"{candidate.first_name or ''} {candidate.last_name or ''}".strip() or "Candidate"
@@ -37,6 +38,7 @@ async def generate_offer_letter(
         department=job.department,
         candidate_name=candidate_name,
         company_context=f"Position in {job.department} department, {job.seniority_level} level",
+        language_instruction=LANGUAGE_INSTRUCTIONS.get(language or "en", ""),
     )
 
     provider = get_llm_provider()

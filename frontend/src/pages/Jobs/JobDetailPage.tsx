@@ -9,7 +9,7 @@ import Card3D from '../../components/common/Card3D';
 import { useTranslation } from 'react-i18next';
 
 const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
-const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } };
+const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } } };
 
 export default function JobDetailPage() {
   const { t } = useTranslation();
@@ -74,7 +74,7 @@ export default function JobDetailPage() {
             <div>
               <h3 className="text-sm font-semibold text-slate-900 mb-2">{t('jobs.detail.requirements')}</h3>
               <ul className="list-disc list-inside space-y-1">
-                {job.requirements.map((req, i) => <li key={i} className="text-sm text-slate-600">{req}</li>)}
+                {job.requirements.map((req, i) => <li key={i} className="text-sm text-slate-600">{typeof req === 'string' ? req : (req as { text: string }).text}</li>)}
               </ul>
             </div>
           ) : null}
@@ -84,7 +84,7 @@ export default function JobDetailPage() {
               <h3 className="text-sm font-semibold text-slate-900 mb-2">{t('jobs.detail.preferredSkills')}</h3>
               <div className="flex flex-wrap gap-2">
                 {job.preferred_skills.map((skill, i) => (
-                  <span key={i} className="bg-gradient-to-r from-blue-400 to-blue-500 text-white text-xs px-3 py-1 rounded-full font-medium">{skill}</span>
+                  <span key={i} className="bg-gradient-to-r from-blue-400 to-blue-500 text-white text-xs px-3 py-1 rounded-full font-medium">{typeof skill === 'string' ? skill : (skill as { text: string }).text}</span>
                 ))}
               </div>
             </div>

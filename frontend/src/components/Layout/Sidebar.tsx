@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   Briefcase,
+  Users,
   FileSearch,
   MessageSquare,
   FileText,
@@ -37,9 +38,10 @@ export default function Sidebar() {
   const [hiringOpen, setHiringOpen] = useState(hiringActive);
 
   const topItems = [
-    { to: '/',                   label: t('nav.dashboard'), icon: LayoutDashboard, end: true  },
-    { to: '/jobs',               label: t('nav.jobs'),      icon: Briefcase,       end: false },
-    { to: '/interviews/pipeline',label: t('nav.pipeline'),  icon: ClipboardList,   end: false },
+    { to: '/',                   label: t('nav.dashboard'),  icon: LayoutDashboard, end: true  },
+    { to: '/jobs',               label: t('nav.jobs'),       icon: Briefcase,       end: false },
+    { to: '/candidates',         label: t('nav.candidates'), icon: Users,           end: false },
+    { to: '/interviews/pipeline',label: t('nav.pipeline'),   icon: ClipboardList,   end: false },
   ];
 
   return (

@@ -206,6 +206,17 @@ export default function QuestionSetGeneratePage() {
             />
           </div>
 
+          {mutation.isError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              <p className="font-medium">{t('questions.generateError', 'Generation failed')}</p>
+              <p className="text-xs mt-1 opacity-80">
+                {(mutation.error as any)?.response?.data?.detail
+                  || (mutation.error as Error)?.message
+                  || 'Unknown error'}
+              </p>
+            </div>
+          )}
+
           <motion.button
             onClick={() => mutation.mutate()}
             disabled={!jobId || mutation.isPending}

@@ -2,7 +2,7 @@
 import json
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -60,6 +60,8 @@ def _serialize(decision: InterviewDecision) -> dict:
         "decision_reason": decision.decision_reason,
         "generated_report": decision.generated_report,
         "generation_model": decision.generation_model,
+        "primary_language": decision.primary_language,
+        "report_translations": decision.report_translations,
         "created_at": decision.created_at.isoformat() if decision.created_at else None,
         "updated_at": decision.updated_at.isoformat() if decision.updated_at else None,
     }
@@ -70,11 +72,19 @@ def _serialize(decision: InterviewDecision) -> dict:
 # ---------------------------------------------------------------------------
 
 @router.post("/generate/{pipeline_id}")
-async def generate_decision(pipeline_id: str, language: str = "en", db: AsyncSession = Depends(get_db)):
+async def generate_decision(
+    pipeline_id: str,
+    language: str = "en",
+    background_tasks: BackgroundTasks = None,
+    db: AsyncSession = Depends(get_db),
+):
     """Generate (or regenerate) the AI decision report for a pipeline entry."""
     from app.services.decision_service import generate_decision_report
+    from app.services.translation_service import translate_decision_report
     try:
         decision = await generate_decision_report(pipeline_id, db, language=language)
+        if background_tasks:
+            background_tasks.add_task(translate_decision_report, decision.id)
         return _serialize(decision)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -166,7 +176,7 @@ async def decision_chat_stream(
     )
 
     from app.services.decision_service import build_salary_chatbot_context
-    system_prompt = build_salary_chatbot_context(decision, job, candidate_name)
+    system_prompt = build_salary_chatbot_context(decision, job, candidate_name, language=data.language)
 
     async def event_generator():
         try:

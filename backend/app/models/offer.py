@@ -48,6 +48,9 @@ class GeneratedOffer(Base):
         String(20), nullable=False, default="draft"
     )  # draft, approved, sent, accepted, declined
     generation_model: Mapped[str | None] = mapped_column(String(100))
+    primary_language: Mapped[str] = mapped_column(String(10), nullable=False, server_default="en")
+    content_translations: Mapped[dict | None] = mapped_column(JSON)
+    # JSON: { "zh": "Chinese offer letter text...", "en": "English offer letter text..." }
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow

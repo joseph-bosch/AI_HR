@@ -14,6 +14,9 @@ from app.models.job import JobRequisition
 from app.models.candidate import ScreeningScore
 from app.models.interview import InterviewEvaluation
 from app.models.offer import GeneratedOffer
+from app.models.question_set import QuestionSet
+from app.models.decision import InterviewDecision
+from app.models.pipeline import InterviewPipeline
 from app.schemas.job import JobCreate, JobUpdate, JobResponse, JobStats
 from app.llm.factory import get_llm_provider
 from app.llm.prompts.job_description import (
@@ -202,8 +205,12 @@ async def delete_job(job_id: str, db: AsyncSession = Depends(get_db)):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     # Explicitly delete related records that lack DB-level CASCADE
+    await db.execute(delete(InterviewDecision).where(InterviewDecision.job_id == job_id))
     await db.execute(delete(InterviewEvaluation).where(InterviewEvaluation.job_id == job_id))
+    await db.execute(delete(InterviewPipeline).where(InterviewPipeline.job_id == job_id))
     await db.execute(delete(GeneratedOffer).where(GeneratedOffer.job_id == job_id))
+    await db.execute(delete(ScreeningScore).where(ScreeningScore.job_id == job_id))
+    await db.execute(delete(QuestionSet).where(QuestionSet.job_id == job_id))
     await db.delete(job)
     await db.commit()
 

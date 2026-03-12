@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = "ollama"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "qwen2.5:7b-instruct-q4_K_M"
-    LLM_TIMEOUT_SECONDS: int = 120
+    LLM_TIMEOUT_SECONDS: int = 300
     LLM_MAX_RETRIES: int = 2
     LLM_TEMPERATURE: float = 0.3
 

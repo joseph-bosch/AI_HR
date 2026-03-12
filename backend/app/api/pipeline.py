@@ -88,6 +88,8 @@ async def add_to_pipeline(data: PipelineAddRequest, db: AsyncSession = Depends(g
     candidate = (await db.execute(select(Candidate).where(Candidate.id == data.candidate_id))).scalar_one_or_none()
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
+    if candidate.is_archived:
+        raise HTTPException(status_code=400, detail="Cannot add an archived candidate to the pipeline")
 
     # Check for duplicate
     existing = (await db.execute(
@@ -130,6 +132,10 @@ async def list_pipeline_for_job(job_id: str, db: AsyncSession = Depends(get_db))
         candidate = (await db.execute(
             select(Candidate).where(Candidate.id == entry.candidate_id)
         )).scalar_one_or_none()
+
+        # Skip archived candidates from pipeline view
+        if candidate and candidate.is_archived:
+            continue
 
         score = (await db.execute(
             select(ScreeningScore).where(

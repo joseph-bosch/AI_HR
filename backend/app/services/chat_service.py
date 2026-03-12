@@ -51,7 +51,11 @@ Available tools:
 - get_interview_pipeline   : All candidates currently in the interview pipeline for a specific job, with their stage and evaluation status.
 - get_candidate_evaluations: All completed evaluation reports for a specific candidate (by candidate_id), across all jobs.
 
-Respond in {language}."""
+Language rules (MANDATORY):
+- Detect the language the user writes in. Reply in THAT language.
+- If the user explicitly requests a specific language (e.g. "reply in English"), use that language.
+- Only fall back to {language} if you truly cannot determine the user's language.
+- NEVER reply in a different language than what the user used, unless they ask you to."""
 
 # ---------------------------------------------------------------------------
 # Tool definitions (Ollama format)
@@ -192,12 +196,12 @@ async def _execute_tool(name: str, arguments: dict, db: AsyncSession) -> dict | 
         open_jobs_count = await db.scalar(
             select(func.count()).select_from(JobRequisition).where(JobRequisition.status == "open")
         )
-        total_candidates = await db.scalar(select(func.count()).select_from(Candidate))
+        total_candidates = await db.scalar(select(func.count()).select_from(Candidate).where(Candidate.is_archived == False))  # noqa: E712
         screened = await db.scalar(
             select(func.count()).select_from(ScreeningScore).where(ScreeningScore.status == "completed")
         )
         shortlisted = await db.scalar(
-            select(func.count()).select_from(Candidate).where(Candidate.status == "shortlisted")
+            select(func.count()).select_from(Candidate).where(Candidate.status == "shortlisted", Candidate.is_archived == False)  # noqa: E712
         )
         jobs_result = await db.execute(
             select(JobRequisition).where(JobRequisition.status == "open")
@@ -241,6 +245,7 @@ async def _execute_tool(name: str, arguments: dict, db: AsyncSession) -> dict | 
             .where(
                 ScreeningScore.job_id == job_id,
                 ScreeningScore.status == "completed",
+                Candidate.is_archived == False,  # noqa: E712
             )
             .order_by(ScreeningScore.overall_score.desc())
         )
@@ -268,6 +273,7 @@ async def _execute_tool(name: str, arguments: dict, db: AsyncSession) -> dict | 
         # Search by first_name or last_name (case-insensitive via LIKE)
         result = await db.execute(
             select(Candidate).where(
+                Candidate.is_archived == False,  # noqa: E712
                 or_(
                     Candidate.first_name.ilike(f"%{search_name}%"),
                     Candidate.last_name.ilike(f"%{search_name}%"),
@@ -358,7 +364,7 @@ async def _execute_tool(name: str, arguments: dict, db: AsyncSession) -> dict | 
         pipeline_result = await db.execute(
             select(InterviewPipeline, Candidate)
             .join(Candidate, InterviewPipeline.candidate_id == Candidate.id)
-            .where(InterviewPipeline.job_id == job_id)
+            .where(InterviewPipeline.job_id == job_id, Candidate.is_archived == False)  # noqa: E712
             .order_by(InterviewPipeline.created_at.asc())
         )
         rows = pipeline_result.all()

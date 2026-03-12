@@ -11,7 +11,7 @@ import type { QuestionItem } from '../../types/questionSet';
 import type { ChatMessage } from '../../types/chat';
 import { useTranslation } from 'react-i18next';
 
-const itemVariants = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } };
+const itemVariants = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } } };
 
 const categoryColors: Record<string, string> = {
   behavioral: 'bg-blue-100 text-blue-800',
@@ -75,12 +75,12 @@ function QuestionList({
                       rows={2}
                     />
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => updateMutation.mutate({ qId: item.id, data: { question_text: editText } })} className="text-sm text-blue-600 hover:underline">{t('questions.save')}</button>
+                      <button type="button" onClick={() => updateMutation.mutate({ qId: item.id, data: lang === primaryLang ? { question_text: editText } : { translations: { ...item.translations, [lang]: { ...item.translations?.[lang], question_text: editText } } } })} className="text-sm text-blue-600 hover:underline">{t('questions.save')}</button>
                       <button type="button" onClick={() => setEditingId(null)} className="text-sm text-slate-500 hover:underline">{t('common.cancel')}</button>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-900 cursor-pointer hover:text-blue-600" onClick={() => { setEditingId(item.id); setEditText(item.question_text); }}>
+                  <p className="text-sm text-slate-900 cursor-pointer hover:text-blue-600" onClick={() => { setEditingId(item.id); setEditText(displayText); }}>
                     {displayText}
                   </p>
                 )}
@@ -307,7 +307,7 @@ export default function QuestionSetEditPage() {
   });
 
   const handleExportPdf = async () => {
-    const blob = await questionSetsApi.exportPdf(id!);
+    const blob = await questionSetsApi.exportPdf(id!, i18n.language);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

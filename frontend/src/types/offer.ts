@@ -28,6 +28,8 @@ export interface Offer {
   pdf_path: string | null;
   status: string;
   generation_model: string | null;
+  primary_language: string | null;
+  content_translations: Record<string, string> | null;
   created_at: string;
   updated_at: string;
 }
@@ -37,4 +39,5 @@ export interface OfferGenerateRequest {
   candidate_id: string;
   template_id: string;
   offer_data: Record<string, unknown>;
+  language?: string;
 }

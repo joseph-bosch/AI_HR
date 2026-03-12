@@ -8,6 +8,8 @@ export interface Candidate {
   status: string;
   source: string | null;
   notes: string | null;
+  is_archived: boolean;
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +26,13 @@ export interface Resume {
   anonymized_data: Record<string, unknown> | null;
   parse_status: string;
   parse_error: string | null;
+  primary_language: string | null;
+  parsed_translations: Record<string, {
+    summary?: string;
+    skills?: string[];
+    experience?: { title?: string; company?: string; description?: string }[];
+    education?: { degree?: string; field?: string; institution?: string }[];
+  }> | null;
   created_at: string;
 }
 
@@ -62,6 +71,7 @@ export interface ScoreTranslation {
   explanation?: string;
   strengths?: string[];
   weaknesses?: string[];
+  additional_insights?: AdditionalInsights;
 }
 
 export interface AdditionalInsights {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus, HelpCircle } from 'lucide-react';
+import { Plus, HelpCircle, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { jobsApi } from '../../api/jobs';
 import { questionSetsApi } from '../../api/questionSets';
@@ -10,17 +10,27 @@ import AnimatedPage from '../../components/common/AnimatedPage';
 import { useTranslation } from 'react-i18next';
 
 const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
-const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } };
+const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } } };
 
 export default function QuestionSetListPage() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [selectedJobId, setSelectedJobId] = useState('');
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const { data: jobs } = useQuery({ queryKey: ['jobs'], queryFn: () => jobsApi.list() });
   const { data: questionSets, isLoading } = useQuery({
     queryKey: ['questionSets', selectedJobId],
     queryFn: () => selectedJobId ? questionSetsApi.listByJob(selectedJobId) : Promise.resolve([]),
     enabled: !!selectedJobId,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (setId: string) => questionSetsApi.delete(setId),
+    onSuccess: () => {
+      setConfirmingId(null);
+      queryClient.invalidateQueries({ queryKey: ['questionSets', selectedJobId] });
+    },
   });
 
   return (
@@ -69,7 +79,37 @@ export default function QuestionSetListPage() {
                       {qs.interview_round.replace('_', ' ')} &middot; {new Date(qs.created_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${qs.status === 'finalized' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{qs.status}</span>
+                  <div className="flex items-center gap-2" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>
+                    <span className={`text-xs px-2 py-1 rounded-full ${qs.status === 'finalized' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{qs.status}</span>
+                    {confirmingId === qs.id ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => deleteMutation.mutate(qs.id)}
+                          disabled={deleteMutation.isPending}
+                          className="text-xs bg-red-500 text-white px-2 py-1 rounded font-medium hover:bg-red-600 disabled:opacity-50"
+                        >
+                          {t('common.confirm')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingId(null)}
+                          className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded font-medium hover:bg-slate-300"
+                        >
+                          {t('common.cancel')}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        title={t('common.delete')}
+                        onClick={() => setConfirmingId(qs.id)}
+                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </Link>
               </motion.div>
             ))}

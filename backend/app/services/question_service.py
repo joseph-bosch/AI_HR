@@ -78,6 +78,7 @@ async def generate_questions(
         prompt=prompt,
         system_prompt=SYSTEM_PROMPT,
         temperature=0.3,
+        max_tokens=8192,
         json_mode=True,
     )
 
@@ -110,6 +111,21 @@ async def generate_questions(
         "culturefit": "culture_fit",
     }
 
+    if not questions_data:
+        raise ValueError(
+            f"LLM returned no questions. Raw response: {response.content[:500]}"
+        )
+
+    def _to_str(val) -> str | None:
+        """Convert lists/dicts to readable strings for Text columns."""
+        if val is None:
+            return None
+        if isinstance(val, list):
+            return "\n".join(str(v) for v in val)
+        if isinstance(val, dict):
+            return json.dumps(val, ensure_ascii=False)
+        return str(val)
+
     for q in questions_data:
         rubric = q.get("scoring_rubric")
         if isinstance(rubric, str):
@@ -124,9 +140,9 @@ async def generate_questions(
         item = QuestionSetItem(
             category=category,
             question_text=q.get("question_text", ""),
-            interviewer_guidance=q.get("interviewer_guidance"),
-            good_answer_indicators=q.get("good_answer_indicators"),
-            red_flags=q.get("red_flags"),
+            interviewer_guidance=_to_str(q.get("interviewer_guidance")),
+            good_answer_indicators=_to_str(q.get("good_answer_indicators")),
+            red_flags=_to_str(q.get("red_flags")),
             scoring_rubric=rubric,
         )
         items.append(item)

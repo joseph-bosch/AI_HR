@@ -9,7 +9,7 @@ import AnimatedPage from '../../components/common/AnimatedPage';
 import { useTranslation } from 'react-i18next';
 
 export default function OfferEditPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [content, setContent] = useState('');
 
@@ -18,7 +18,15 @@ export default function OfferEditPage() {
     queryFn: () => offersApi.get(id!),
   });
 
-  useEffect(() => { if (offer) setContent(offer.content); }, [offer]);
+  // Show translated offer content when UI language differs from generation language
+  useEffect(() => {
+    if (offer) {
+      const lang = i18n.language;
+      const primaryLang = offer.primary_language || 'en';
+      const translatedContent = (lang !== primaryLang && offer.content_translations?.[lang]) || null;
+      setContent(translatedContent || offer.content);
+    }
+  }, [offer, i18n.language]);
 
   const saveMutation = useMutation({
     mutationFn: () => offersApi.update(id!, { content }),

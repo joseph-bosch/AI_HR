@@ -39,6 +39,7 @@ class OfferGenerateRequest(BaseModel):
     candidate_id: str
     template_id: str
     offer_data: dict  # salary, start_date, benefits, etc.
+    language: str | None = None  # e.g. "zh" or "en"
 
 
 class OfferUpdate(BaseModel):
@@ -56,6 +57,8 @@ class OfferResponse(BaseModel):
     pdf_path: str | None
     status: str
     generation_model: str | None
+    primary_language: str | None
+    content_translations: dict | None
     created_at: datetime
     updated_at: datetime
 

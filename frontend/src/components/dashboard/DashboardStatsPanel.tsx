@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, Users, CheckCircle, Briefcase } from 'lucide-react';
+import { TrendingUp, Users, CheckCircle, Briefcase, Archive } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
 import AnimatedCounter from '../common/AnimatedCounter';
@@ -22,6 +22,7 @@ export default function DashboardStatsPanel() {
   const {
     openJobs,
     totalCandidates,
+    archivedCandidates,
     screenedCandidates,
     shortlistedCandidates,
     candidatesByStatus,
@@ -48,6 +49,7 @@ export default function DashboardStatsPanel() {
     { icon: Users, label: t('dashboard.stats.candidates'), value: totalCandidates, color: '#8b5cf6' },
     { icon: CheckCircle, label: t('dashboard.stats.screened'), value: screenedCandidates, color: '#06b6d4' },
     { icon: TrendingUp, label: t('dashboard.stats.shortlisted'), value: shortlistedCandidates, color: '#10b981' },
+    { icon: Archive, label: t('dashboard.stats.archived'), value: archivedCandidates, color: '#94a3b8' },
   ];
 
   return (

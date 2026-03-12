@@ -34,6 +34,16 @@ async def parse_resume(resume: Resume, db: AsyncSession):
     if response.parsed:
         resume.parsed_data = response.parsed
 
+        # Store detected language (LLM returns it; fallback to heuristic)
+        detected_lang = response.parsed.get("detected_language", "").lower().strip()
+        if detected_lang in ("en", "zh"):
+            resume.primary_language = detected_lang
+        else:
+            # Heuristic: if summary has CJK characters, assume Chinese
+            summary = response.parsed.get("summary", "")
+            has_cjk = any('\u4e00' <= ch <= '\u9fff' for ch in summary)
+            resume.primary_language = "zh" if has_cjk else "en"
+
         # Anonymize for bias-free screening
         resume.anonymized_data = anonymize_parsed_data(response.parsed)
 

@@ -13,14 +13,34 @@ def extract_text_from_pdf(file_path: str) -> str:
 
 
 def extract_text_from_docx(file_path: str) -> str:
-    from docx import Document
+    """Extract all text from a .docx file regardless of layout.
 
-    doc = Document(file_path)
-    text_parts = []
-    for para in doc.paragraphs:
-        if para.text.strip():
-            text_parts.append(para.text)
-    return "\n".join(text_parts).strip()
+    Parses the raw XML so that text inside paragraphs, tables, text boxes,
+    shapes, headers, and footers is captured — not just ``doc.paragraphs``.
+    """
+    import zipfile
+    import xml.etree.ElementTree as ET
+
+    ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+
+    parts: list[str] = []
+    with zipfile.ZipFile(file_path) as z:
+        # document.xml is the main body; also check headers/footers
+        xml_files = [
+            n for n in z.namelist()
+            if n.startswith("word/") and n.endswith(".xml")
+            and any(k in n for k in ("document", "header", "footer"))
+        ]
+        for xml_file in xml_files:
+            with z.open(xml_file) as f:
+                tree = ET.parse(f)
+            for p in tree.getroot().findall(".//w:p", ns):
+                runs = p.findall(".//w:t", ns)
+                line = "".join(t.text for t in runs if t.text)
+                if line.strip():
+                    parts.append(line)
+
+    return "\n".join(parts).strip()
 
 
 def extract_text_from_txt(file_path: str) -> str:

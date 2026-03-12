@@ -84,6 +84,42 @@ def _run_migrations(conn):
         "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id=OBJECT_ID(N'interview_evaluations') AND name=N'report_edited') "
         "ALTER TABLE interview_evaluations ADD report_edited INT NOT NULL DEFAULT 0"
     ))
+    # New columns: resumes — language + translations for parsed data (summary)
+    conn.execute(text(
+        "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id=OBJECT_ID(N'resumes') AND name=N'primary_language') "
+        "ALTER TABLE resumes ADD primary_language NVARCHAR(10) NOT NULL DEFAULT 'en'"
+    ))
+    conn.execute(text(
+        "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id=OBJECT_ID(N'resumes') AND name=N'parsed_translations') "
+        "ALTER TABLE resumes ADD parsed_translations NVARCHAR(MAX) NULL"
+    ))
+    # New columns: interview_decisions — language + translations for decision reports
+    conn.execute(text(
+        "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id=OBJECT_ID(N'interview_decisions') AND name=N'primary_language') "
+        "ALTER TABLE interview_decisions ADD primary_language NVARCHAR(10) NOT NULL DEFAULT 'en'"
+    ))
+    conn.execute(text(
+        "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id=OBJECT_ID(N'interview_decisions') AND name=N'report_translations') "
+        "ALTER TABLE interview_decisions ADD report_translations NVARCHAR(MAX) NULL"
+    ))
+    # New columns: generated_offers — language + translations for offer content
+    conn.execute(text(
+        "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id=OBJECT_ID(N'generated_offers') AND name=N'primary_language') "
+        "ALTER TABLE generated_offers ADD primary_language NVARCHAR(10) NOT NULL DEFAULT 'en'"
+    ))
+    conn.execute(text(
+        "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id=OBJECT_ID(N'generated_offers') AND name=N'content_translations') "
+        "ALTER TABLE generated_offers ADD content_translations NVARCHAR(MAX) NULL"
+    ))
+    # New columns: candidates — archive support
+    conn.execute(text(
+        "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id=OBJECT_ID(N'candidates') AND name=N'is_archived') "
+        "ALTER TABLE candidates ADD is_archived BIT NOT NULL DEFAULT 0"
+    ))
+    conn.execute(text(
+        "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id=OBJECT_ID(N'candidates') AND name=N'archived_at') "
+        "ALTER TABLE candidates ADD archived_at DATETIME NULL"
+    ))
 
 
 @asynccontextmanager

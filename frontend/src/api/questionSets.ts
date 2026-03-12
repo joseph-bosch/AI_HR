@@ -15,6 +15,9 @@ export const questionSetsApi = {
   updateQuestion: (setId: string, qId: string, data: QuestionItemUpdate) =>
     api.put(`/question-sets/${setId}/questions/${qId}`, data).then(r => r.data),
 
+  delete: (setId: string) =>
+    api.delete(`/question-sets/${setId}`).then(r => r.data),
+
   deleteQuestion: (setId: string, qId: string) =>
     api.delete(`/question-sets/${setId}/questions/${qId}`).then(r => r.data),
 
@@ -24,8 +27,8 @@ export const questionSetsApi = {
   finalize: (setId: string) =>
     api.post(`/question-sets/${setId}/finalize`).then(r => r.data),
 
-  exportPdf: (setId: string) =>
-    api.get(`/question-sets/${setId}/export/pdf`, { responseType: 'blob' }).then(r => r.data),
+  exportPdf: (setId: string, lang?: string) =>
+    api.get(`/question-sets/${setId}/export/pdf`, { params: lang ? { lang } : undefined, responseType: 'blob' }).then(r => r.data),
 
   listByJob: (jobId: string) =>
     api.get<QuestionSet[]>(`/question-sets/job/${jobId}`).then(r => r.data),

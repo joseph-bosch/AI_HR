@@ -41,7 +41,19 @@
       "Bash(\"C:\\\\Users\\\\lenovo\\\\AppData\\\\Local\\\\Programs\\\\Ollama\\\\ollama.exe\" pull qwen2.5:7b-instruct-q4_K_M)",
       "Bash(python -m uvicorn app.main:app --reload --port 8000)",
       "Bash(npm run dev)",
-      "Bash(curl -s http://localhost:8000/api/health/llm)"
+      "Bash(curl -s http://localhost:8000/api/health/llm)",
+      "Bash(npm run build)",
+      "Bash(npx tsc -b --noEmit)",
+      "Bash(ls /c/Users/lenovo/Desktop/AI_HR/CLAUDE* /c/Users/lenovo/Desktop/AI_HR/claude*)",
+      "Bash(dir \"C:\\\\Users\\\\lenovo\\\\Desktop\\\\AI_HR\\\\backend\\\\storage\\\\resumes\\\\43e3b50b-f64b-43bd-b036-cf28ce698bbe.docx\")",
+      "Bash(hr_envScriptspython -c \"from app.utils.text_extraction import extract_text; text = extract_text\\(''storage\\\\resumes\\\\43e3b50b-f64b-43bd-b036-cf28ce698bbe.docx''\\); print\\(f''Length: {len\\(text\\)}''\\); print\\(text[:500]\\)\")",
+      "Bash(\"hr_env\\\\Scripts\\\\python.exe\" -c \"from app.utils.text_extraction import extract_text; text = extract_text\\(''storage\\\\resumes\\\\43e3b50b-f64b-43bd-b036-cf28ce698bbe.docx''\\); print\\(f''Length: {len\\(text\\)}''\\); print\\(text[:500]\\)\")",
+      "Bash(\"hr_env\\\\Scripts\\\\python.exe\" -c \"from app.utils.text_extraction import extract_text; text = extract_text\\(r''storage\\\\resumes\\\\43e3b50b-f64b-43bd-b036-cf28ce698bbe.docx''\\); print\\(f''Length: {len\\(text\\)}''\\); print\\(repr\\(text[:500]\\)\\)\")",
+      "Bash(\"hr_env\\\\Scripts\\\\python.exe\" -c \":*)",
+      "Bash(\"hr_env\\\\Scripts\\\\python.exe\" -c \"import sys; sys.stdout.reconfigure\\(encoding=''utf-8''\\); from app.utils.text_extraction import extract_text; text = extract_text\\(r''storage\\\\resumes\\\\43e3b50b-f64b-43bd-b036-cf28ce698bbe.docx''\\); print\\(f''Length: {len\\(text\\)}''\\); print\\(text[:400]\\)\")",
+      "Bash(\"hr_env\\\\Scripts\\\\python.exe\" -c \"import sys; sys.stdout.reconfigure\\(encoding=''utf-8''\\); from app.utils.text_extraction import extract_text; text = extract_text\\(r''storage\\\\resumes\\\\43e3b50b-f64b-43bd-b036-cf28ce698bbe.docx''\\); print\\(f''Length: {len\\(text\\)}''\\); print\\(text[:300]\\)\")",
+      "Bash(grep -n \"select\\(Candidate\\)\" app/services/*.py)",
+      "Bash(python -c \"from app.models.candidate import Candidate; from app.api.candidates import router; print\\(''Backend imports OK''\\)\")"
     ]
   }
 }

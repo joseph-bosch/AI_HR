@@ -1,4 +1,6 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from typing import Optional
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -21,8 +23,11 @@ async def generate_question_set(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
+    import logging
     from app.services.question_service import generate_questions
     from app.services.translation_service import translate_question_set_items
+
+    logger = logging.getLogger(__name__)
 
     job_result = await db.execute(
         select(JobRequisition).where(JobRequisition.id == data.job_id)
@@ -31,10 +36,20 @@ async def generate_question_set(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    question_set, items = await generate_questions(
-        job, data.interview_round, data.preferences, data.language,
-        data.total_count, data.category_counts,
-    )
+    try:
+        question_set, items = await generate_questions(
+            job, data.interview_round, data.preferences, data.language,
+            data.total_count, data.category_counts,
+        )
+    except ValueError as e:
+        logger.error("Question generation returned no data: %s", e)
+        raise HTTPException(status_code=502, detail=str(e))
+    except Exception as e:
+        logger.error("Question generation failed: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=502,
+            detail=f"AI generation failed: {type(e).__name__}: {e}",
+        )
 
     db.add(question_set)
     await db.flush()
@@ -138,6 +153,25 @@ async def delete_question(set_id: str, q_id: str, db: AsyncSession = Depends(get
     return {"status": "ok"}
 
 
+@router.delete("/{set_id}")
+async def delete_question_set(set_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(QuestionSet).where(QuestionSet.id == set_id)
+    )
+    qs = result.scalar_one_or_none()
+    if not qs:
+        raise HTTPException(status_code=404, detail="Question set not found")
+    # Delete all child questions first
+    items_result = await db.execute(
+        select(QuestionSetItem).where(QuestionSetItem.question_set_id == set_id)
+    )
+    for item in items_result.scalars().all():
+        await db.delete(item)
+    await db.delete(qs)
+    await db.flush()
+    return {"status": "ok"}
+
+
 @router.put("/{set_id}/reorder")
 async def reorder_questions(
     set_id: str,
@@ -172,7 +206,7 @@ async def finalize_set(set_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{set_id}/export/pdf")
-async def export_pdf(set_id: str, db: AsyncSession = Depends(get_db)):
+async def export_pdf(set_id: str, lang: Optional[str] = Query(None), db: AsyncSession = Depends(get_db)):
     import os
     from app.services.pdf_service import generate_question_set_pdf
 
@@ -190,7 +224,7 @@ async def export_pdf(set_id: str, db: AsyncSession = Depends(get_db)):
     )
     items = items_result.scalars().all()
 
-    pdf_path = await generate_question_set_pdf(qs, items)
+    pdf_path = await generate_question_set_pdf(qs, items, lang=lang)
     qs.pdf_path = pdf_path
     await db.flush()
 

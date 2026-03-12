@@ -14,6 +14,7 @@ venv/
 .venv/
 env/
 hr_env/
+claude
 
 # Environment variables
 .env

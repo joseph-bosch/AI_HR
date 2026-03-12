@@ -1,4 +1,5 @@
 import json
+import re
 import time
 from typing import Any
 
@@ -7,9 +8,11 @@ from pydantic import BaseModel, ValidationError
 
 from app.llm.base import LLMProvider, LLMResponse
 
+_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+
 
 class OllamaProvider(LLMProvider):
-    def __init__(self, base_url: str, model: str, timeout: int = 120, max_retries: int = 2):
+    def __init__(self, base_url: str, model: str, timeout: int = 300, max_retries: int = 2):
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout
@@ -53,12 +56,21 @@ class OllamaProvider(LLMProvider):
         data = response.json()
         content = data["message"]["content"]
 
+        # Strip <think>...</think> tags that some models emit despite think=False
+        content = _THINK_RE.sub("", content).strip()
+
         parsed = None
         if json_mode:
             try:
                 parsed = json.loads(content)
             except json.JSONDecodeError:
-                pass
+                # Try to extract JSON from the content (model may have wrapped it)
+                match = re.search(r'\{[\s\S]*\}', content)
+                if match:
+                    try:
+                        parsed = json.loads(match.group())
+                    except json.JSONDecodeError:
+                        pass
 
         return LLMResponse(
             content=content,

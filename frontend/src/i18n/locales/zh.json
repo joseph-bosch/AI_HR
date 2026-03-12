@@ -8,6 +8,7 @@
     "offers": "录用通知",
     "questions": "面试题",
     "hiringProcesses": "招聘流程",
+    "candidates": "管理候选人",
     "footer": "AI人力资源系统 v1.0"
   },
   "common": {
@@ -47,6 +48,7 @@
     "templates": "模板",
     "questions": "面试题",
     "candidateProfile": "候选人档案",
+    "candidates": "管理候选人",
     "questionSet": "题目集",
     "template": "模板",
     "offer": "录用通知",
@@ -71,6 +73,7 @@
       "candidates": "候选人",
       "screened": "已筛选",
       "shortlisted": "入围",
+      "archived": "已归档",
       "status": {
         "new": "新增",
         "screening": "筛选中",
@@ -380,7 +383,7 @@
       "totalAllocated": "当前分配：{{allocated}} 题"
     },
     "generateBtn": "使用AI生成面试题",
-    "generating": "生成中（可能需要30-60秒）...",
+    "generating": "生成中（可能需要1-3分钟）...",
     "questionCount": "{{count}} 道题",
     "viewRubrics": "查看完整题集与评分标准",
     "editTitle": "编辑题集",
@@ -408,7 +411,8 @@
     "chatTitle": "题目助手",
     "chatWelcome": "您好！我可以帮您优化面试题集。您可以让我添加题目、完善现有题目，或删除重复题目。",
     "chatPlaceholder": "请告诉我如何添加、改进或删除题目...",
-    "chatApplying": "正在应用更改到题集..."
+    "chatApplying": "正在应用更改到题集...",
+    "deleteConfirm": "确定要删除「{{name}}」吗？这将删除该题集中的所有题目，且无法撤销。"
   },
   "pipeline": {
     "title": "面试流程",
@@ -509,5 +513,23 @@
     "chatPlaceholder": "询问薪资谈判、Offer详情、薪酬基准等...",
     "chatInputPlaceholder": "询问薪资或Offer条款...",
     "chatAfterGenerate": "请先生成AI报告以启用薪资助手。"
+  },
+  "candidates": {
+    "title": "管理候选人",
+    "noCandidates": "未找到候选人。",
+    "searchPlaceholder": "按姓名或邮箱搜索...",
+    "showArchived": "显示已归档",
+    "archive": "归档",
+    "unarchive": "取消归档",
+    "archived": "已归档",
+    "columns": {
+      "name": "姓名",
+      "email": "邮箱",
+      "phone": "电话",
+      "status": "状态",
+      "source": "来源",
+      "created": "创建时间",
+      "actions": "操作"
+    }
   }
 }

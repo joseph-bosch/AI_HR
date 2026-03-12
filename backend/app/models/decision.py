@@ -39,6 +39,9 @@ class InterviewDecision(Base):
     #   "interview_stages_summary": [{ "stage": "hr_interview", "fit_score": 78, "summary": "..." }]
     # }
     generation_model: Mapped[str | None] = mapped_column(String(100))
+    primary_language: Mapped[str] = mapped_column(String(10), nullable=False, server_default="en")
+    report_translations: Mapped[dict | None] = mapped_column(JSON)
+    # JSON: { "zh": { "strengths_summary": "...", "risk_summary": "...", ... } }
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow

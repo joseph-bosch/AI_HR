@@ -93,6 +93,26 @@ export default function DecisionPage() {
 
   const report = decision?.generated_report;
 
+  // Pick translated report fields when UI language differs from generation language
+  const lang = i18n.language;
+  const primaryLang = decision?.primary_language || 'en';
+  const translation = (lang !== primaryLang && decision?.report_translations?.[lang]) || null;
+
+  // Merge: use translated text fields where available, fall back to original report
+  const displayReport = report ? {
+    ...report,
+    strengths_summary: translation?.strengths_summary || report.strengths_summary,
+    risk_summary: translation?.risk_summary || report.risk_summary,
+    technical_verdict: translation?.technical_verdict || report.technical_verdict,
+    cultural_verdict: translation?.cultural_verdict || report.cultural_verdict,
+    lessons_learned: translation?.lessons_learned || report.lessons_learned,
+    salary_recommendation: {
+      ...report.salary_recommendation,
+      rationale: translation?.salary_recommendation?.rationale || report.salary_recommendation?.rationale,
+    },
+    interview_stages_summary: translation?.interview_stages_summary || report.interview_stages_summary,
+  } : null;
+
   if (!pipeline || decisionLoading) return <LoadingSpinner />;
 
   return (
@@ -134,7 +154,7 @@ export default function DecisionPage() {
             )}
 
             {/* Report exists */}
-            {report && (
+            {report && displayReport && (
               <>
                 {/* Recommendation banner */}
                 <div className={`rounded-2xl p-6 bg-gradient-to-r ${REC_COLORS[report.overall_recommendation] ?? 'from-slate-400 to-slate-500'} text-white`}>
@@ -167,14 +187,14 @@ export default function DecisionPage() {
                       <TrendingUp className="w-4 h-4 text-green-500" />
                       <h3 className="text-sm font-semibold text-slate-900">{t('decision.strengths')}</h3>
                     </div>
-                    <p className="text-sm text-slate-600">{report.strengths_summary}</p>
+                    <p className="text-sm text-slate-600">{displayReport.strengths_summary}</p>
                   </div>
                   <div className="glass-card rounded-2xl p-5">
                     <div className="flex items-center gap-2 mb-2">
                       <AlertTriangle className="w-4 h-4 text-amber-500" />
                       <h3 className="text-sm font-semibold text-slate-900">{t('decision.risks')}</h3>
                     </div>
-                    <p className="text-sm text-slate-600">{report.risk_summary}</p>
+                    <p className="text-sm text-slate-600">{displayReport.risk_summary}</p>
                   </div>
                 </div>
 
@@ -182,11 +202,11 @@ export default function DecisionPage() {
                 <div className="glass-card rounded-2xl p-5 space-y-3">
                   <div>
                     <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">{t('decision.technical')}</h3>
-                    <p className="text-sm text-slate-700">{report.technical_verdict}</p>
+                    <p className="text-sm text-slate-700">{displayReport.technical_verdict}</p>
                   </div>
                   <div className="border-t border-slate-100 pt-3">
                     <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">{t('decision.cultural')}</h3>
-                    <p className="text-sm text-slate-700">{report.cultural_verdict}</p>
+                    <p className="text-sm text-slate-700">{displayReport.cultural_verdict}</p>
                   </div>
                 </div>
 
@@ -207,16 +227,16 @@ export default function DecisionPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500">{report.salary_recommendation.rationale}</p>
+                    <p className="text-xs text-slate-500">{displayReport.salary_recommendation.rationale}</p>
                   </div>
                 )}
 
                 {/* Per-round stage summary */}
-                {report.interview_stages_summary?.length > 0 && (
+                {displayReport.interview_stages_summary?.length > 0 && (
                   <div className="glass-card rounded-2xl p-5">
                     <h3 className="text-sm font-semibold text-slate-900 mb-3">{t('decision.stages')}</h3>
                     <div className="space-y-3">
-                      {report.interview_stages_summary.map((s, i) => (
+                      {displayReport.interview_stages_summary.map((s, i) => (
                         <div key={i} className="flex items-start gap-3">
                           <ScoreBadge score={s.fit_score} size="sm" />
                           <div className="flex-1 min-w-0">
@@ -233,14 +253,14 @@ export default function DecisionPage() {
                 )}
 
                 {/* Lessons learned */}
-                {report.lessons_learned?.length > 0 && (
+                {displayReport.lessons_learned?.length > 0 && (
                   <div className="glass-card rounded-2xl p-5">
                     <div className="flex items-center gap-2 mb-2">
                       <Lightbulb className="w-4 h-4 text-amber-400" />
                       <h3 className="text-sm font-semibold text-slate-900">{t('decision.lessons')}</h3>
                     </div>
                     <ul className="space-y-1">
-                      {report.lessons_learned.map((l, i) => (
+                      {displayReport.lessons_learned.map((l, i) => (
                         <li key={i} className="text-sm text-slate-600 flex gap-2">
                           <span className="text-amber-400 mt-0.5">•</span> {l}
                         </li>

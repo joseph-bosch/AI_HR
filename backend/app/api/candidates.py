@@ -12,6 +12,7 @@ from app.config import settings
 from app.database import get_db
 from app.models.candidate import Candidate, Resume, ScreeningScore
 from app.models.interview import InterviewEvaluation
+from app.models.decision import InterviewDecision
 from app.models.offer import GeneratedOffer
 from app.schemas.candidate import (
     CandidateResponse, CandidateUpdate, ResumeResponse,
@@ -54,10 +55,12 @@ async def _save_uploaded_file(file: UploadFile) -> tuple[str, str, int]:
 
 
 async def _parse_resume_background(resume_id: str):
-    """Background task to parse a resume with the LLM."""
+    """Background task to parse a resume with the LLM, then translate the summary."""
     from app.database import async_session
     from app.services.resume_parser import parse_resume
+    from app.services.translation_service import translate_resume_summary
 
+    parsed_ok = False
     async with async_session() as db:
         try:
             result = await db.execute(select(Resume).where(Resume.id == resume_id))
@@ -72,22 +75,40 @@ async def _parse_resume_background(resume_id: str):
 
             resume.parse_status = "completed"
             await db.commit()
+            parsed_ok = True
         except Exception as e:
             resume.parse_status = "failed"
             resume.parse_error = str(e)
             await db.commit()
 
+    # Translate the summary to the other language (runs after DB session closes)
+    if parsed_ok:
+        await translate_resume_summary(resume_id)
+
 
 @router.get("/", response_model=list[CandidateResponse])
 async def list_candidates(
     status: str | None = None,
+    search: str | None = None,
+    include_archived: bool = Query(False),
     page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+    per_page: int = Query(200, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
 ):
     query = select(Candidate)
+    if not include_archived:
+        query = query.where(Candidate.is_archived == False)  # noqa: E712
     if status:
         query = query.where(Candidate.status == status)
+    if search:
+        search_term = f"%{search}%"
+        query = query.where(
+            or_(
+                Candidate.first_name.ilike(search_term),
+                Candidate.last_name.ilike(search_term),
+                Candidate.email.ilike(search_term),
+            )
+        )
     query = query.order_by(Candidate.created_at.desc())
     query = query.offset((page - 1) * per_page).limit(per_page)
     result = await db.execute(query)
@@ -101,6 +122,7 @@ async def delete_candidate(candidate_id: str, db: AsyncSession = Depends(get_db)
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
     # Explicitly delete related records that lack DB-level CASCADE
+    await db.execute(delete(InterviewDecision).where(InterviewDecision.candidate_id == candidate_id))
     await db.execute(delete(InterviewEvaluation).where(InterviewEvaluation.candidate_id == candidate_id))
     await db.execute(delete(GeneratedOffer).where(GeneratedOffer.candidate_id == candidate_id))
     await db.execute(delete(ScreeningScore).where(ScreeningScore.candidate_id == candidate_id))
@@ -131,6 +153,34 @@ async def update_candidate(
         raise HTTPException(status_code=404, detail="Candidate not found")
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(candidate, field, value)
+    await db.flush()
+    await db.refresh(candidate)
+    return candidate
+
+
+@router.post("/{candidate_id}/archive", response_model=CandidateResponse)
+async def archive_candidate(candidate_id: str, db: AsyncSession = Depends(get_db)):
+    from datetime import datetime as dt
+
+    result = await db.execute(select(Candidate).where(Candidate.id == candidate_id))
+    candidate = result.scalar_one_or_none()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    candidate.is_archived = True
+    candidate.archived_at = dt.utcnow()
+    await db.flush()
+    await db.refresh(candidate)
+    return candidate
+
+
+@router.post("/{candidate_id}/unarchive", response_model=CandidateResponse)
+async def unarchive_candidate(candidate_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Candidate).where(Candidate.id == candidate_id))
+    candidate = result.scalar_one_or_none()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    candidate.is_archived = False
+    candidate.archived_at = None
     await db.flush()
     await db.refresh(candidate)
     return candidate

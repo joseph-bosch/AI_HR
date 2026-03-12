@@ -9,10 +9,10 @@ import AnimatedPage from '../../components/common/AnimatedPage';
 import { useTranslation } from 'react-i18next';
 
 const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
-const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } };
+const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } } };
 
 export default function CandidateDetailPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { candidateId } = useParams<{ candidateId: string }>();
   const location = useLocation();
   const jobId = (location.state as { jobId?: string } | null)?.jobId;
@@ -40,6 +40,30 @@ export default function CandidateDetailPage() {
 
   const parsed = resume?.parsed_data;
   const insights = score?.additional_insights;
+
+  // Use translated content when the UI language differs from the content's primary language
+  const lang = i18n.language;
+  const resumeLang = resume?.primary_language || 'en';
+  const resumeTranslation = (lang !== resumeLang && resume?.parsed_translations?.[lang]) || null;
+  const summaryText = resumeTranslation?.summary || parsed?.summary;
+  const displaySkills = resumeTranslation?.skills || parsed?.skills;
+  const displayExperience = parsed?.experience?.map((exp, i) => ({
+    ...exp,
+    title: resumeTranslation?.experience?.[i]?.title || exp.title,
+    company: resumeTranslation?.experience?.[i]?.company || exp.company,
+    description: resumeTranslation?.experience?.[i]?.description || exp.description,
+  }));
+  const displayEducation = parsed?.education?.map((edu, i) => ({
+    ...edu,
+    degree: resumeTranslation?.education?.[i]?.degree || edu.degree,
+    field: resumeTranslation?.education?.[i]?.field || edu.field,
+    institution: resumeTranslation?.education?.[i]?.institution || edu.institution,
+  }));
+
+  // Screening score translations (includes additional_insights)
+  const scoreLang = score?.primary_language || 'en';
+  const scoreTranslation = (lang !== scoreLang && score?.score_translations?.[lang]) || null;
+  const displayInsights = scoreTranslation?.additional_insights || insights;
 
   return (
     <AnimatedPage>
@@ -73,46 +97,46 @@ export default function CandidateDetailPage() {
             initial="hidden"
             animate="visible"
           >
-            {parsed.summary && (
+            {summaryText && (
               <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6">
                 <h2 className="text-lg font-semibold text-slate-900 mb-2">{t('screening.candidateProfile.summary')}</h2>
-                <p className="text-sm text-slate-600">{parsed.summary}</p>
+                <p className="text-sm text-slate-600">{summaryText}</p>
               </motion.div>
             )}
 
             {/* AI Insights card */}
-            {insights && (
+            {displayInsights && (
               <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6 border border-violet-200/60 bg-gradient-to-br from-violet-50/30 to-indigo-50/20">
                 <div className="flex items-center gap-2 mb-4">
                   <Sparkles className="w-5 h-5 text-violet-500" />
                   <h2 className="text-lg font-semibold text-slate-900">{t('screening.candidateProfile.aiInsights')}</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {insights.career_trajectory && (
+                  {displayInsights.career_trajectory && (
                     <div className="flex gap-3">
                       <TrendingUp className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">{t('screening.candidateProfile.insights.careerTrajectory')}</p>
-                        <p className="text-sm text-slate-700 leading-relaxed">{insights.career_trajectory}</p>
+                        <p className="text-sm text-slate-700 leading-relaxed">{displayInsights.career_trajectory}</p>
                       </div>
                     </div>
                   )}
-                  {insights.cultural_indicators && (
+                  {displayInsights.cultural_indicators && (
                     <div className="flex gap-3">
                       <Users className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">{t('screening.candidateProfile.insights.culturalIndicators')}</p>
-                        <p className="text-sm text-slate-700 leading-relaxed">{insights.cultural_indicators}</p>
+                        <p className="text-sm text-slate-700 leading-relaxed">{displayInsights.cultural_indicators}</p>
                       </div>
                     </div>
                   )}
-                  {insights.standout_qualities?.length ? (
+                  {displayInsights.standout_qualities?.length ? (
                     <div className="flex gap-3">
                       <Star className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">{t('screening.candidateProfile.insights.standoutQualities')}</p>
                         <ul className="space-y-1">
-                          {insights.standout_qualities.map((q, i) => (
+                          {displayInsights.standout_qualities.map((q: string, i: number) => (
                             <li key={i} className="text-sm text-slate-700 flex gap-1.5 leading-relaxed">
                               <span className="text-amber-400 shrink-0">•</span>{q}
                             </li>
@@ -121,13 +145,13 @@ export default function CandidateDetailPage() {
                       </div>
                     </div>
                   ) : null}
-                  {insights.risk_flags?.length ? (
+                  {displayInsights.risk_flags?.length ? (
                     <div className="flex gap-3">
                       <AlertTriangle className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">{t('screening.candidateProfile.insights.riskFlags')}</p>
                         <ul className="space-y-1">
-                          {insights.risk_flags.map((f, i) => (
+                          {displayInsights.risk_flags.map((f: string, i: number) => (
                             <li key={i} className="text-sm text-slate-700 flex gap-1.5 leading-relaxed">
                               <span className="text-orange-400 shrink-0">•</span>{f}
                             </li>
@@ -140,22 +164,22 @@ export default function CandidateDetailPage() {
               </motion.div>
             )}
 
-            {parsed.skills?.length ? (
+            {displaySkills?.length ? (
               <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6">
                 <h2 className="text-lg font-semibold text-slate-900 mb-3">{t('screening.candidateProfile.skills')}</h2>
                 <div className="flex flex-wrap gap-2">
-                  {parsed.skills.map((skill, i) => (
+                  {displaySkills.map((skill, i) => (
                     <span key={i} className="bg-gradient-to-r from-blue-400 to-blue-500 text-white text-xs px-3 py-1 rounded-full font-medium">{skill}</span>
                   ))}
                 </div>
               </motion.div>
             ) : null}
 
-            {parsed.experience?.length ? (
+            {displayExperience?.length ? (
               <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6">
                 <h2 className="text-lg font-semibold text-slate-900 mb-3">{t('screening.candidateProfile.experience')}</h2>
                 <div className="space-y-4">
-                  {parsed.experience.map((exp, i) => (
+                  {displayExperience.map((exp, i) => (
                     <div key={i} className="border-l-2 border-blue-300 pl-4">
                       <p className="font-medium text-slate-900">{exp.title}</p>
                       <p className="text-sm text-slate-500">{exp.company} &middot; {exp.start_date} - {exp.end_date}</p>
@@ -166,10 +190,10 @@ export default function CandidateDetailPage() {
               </motion.div>
             ) : null}
 
-            {parsed.education?.length ? (
+            {displayEducation?.length ? (
               <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6">
                 <h2 className="text-lg font-semibold text-slate-900 mb-3">{t('screening.candidateProfile.education')}</h2>
-                {parsed.education.map((edu, i) => (
+                {displayEducation.map((edu, i) => (
                   <div key={i} className="mb-2">
                     <p className="font-medium text-slate-900">{edu.degree} in {edu.field}</p>
                     <p className="text-sm text-slate-500">{edu.institution} {edu.year ? `(${edu.year})` : ''}</p>

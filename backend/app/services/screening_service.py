@@ -1,4 +1,5 @@
 import json
+import logging
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +8,9 @@ from app.models.candidate import Resume, ScreeningScore
 from app.models.job import JobRequisition
 from app.llm.factory import get_llm_provider
 from app.llm.prompts.candidate_scoring import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
+from app.utils.anonymizer import anonymize_parsed_data
+
+logger = logging.getLogger(__name__)
 
 _LANGUAGE_INSTRUCTIONS = {
     "zh": "IMPORTANT: Generate ALL text content (explanation, strengths, weaknesses) in Chinese (Simplified).",
@@ -43,11 +47,14 @@ async def score_candidate(
     job_id: str, candidate_id: str, resume_id: str, db: AsyncSession, language: str = "en"
 ):
     """Score a candidate against a job description using anonymized data."""
+    logger.info("Starting screening for job_id=%s candidate_id=%s resume_id=%s lang=%s", job_id, candidate_id, resume_id, language)
+
     # Get job
     job_result = await db.execute(
         select(JobRequisition).where(JobRequisition.id == job_id)
     )
     job = job_result.scalar_one()
+    logger.info("Job loaded: %s (%s)", job.title, job.department)
 
     # Get resume anonymized data
     resume_result = await db.execute(
@@ -55,8 +62,27 @@ async def score_candidate(
     )
     resume = resume_result.scalar_one()
 
+    logger.info(
+        "Resume %s: parse_status=%s, has_parsed_data=%s, has_anonymized_data=%s, has_raw_text=%s",
+        resume_id, resume.parse_status,
+        resume.parsed_data is not None,
+        resume.anonymized_data is not None,
+        resume.raw_text is not None,
+    )
+
     if not resume.anonymized_data:
-        raise ValueError("Resume has no anonymized data")
+        if resume.parsed_data:
+            logger.warning("Resume %s has parsed_data but no anonymized_data — generating now", resume_id)
+            resume.anonymized_data = anonymize_parsed_data(resume.parsed_data)
+            await db.flush()
+        else:
+            # Both parsed_data and anonymized_data are missing — re-parse from file
+            logger.warning("Resume %s missing parsed data — re-parsing from file: %s", resume_id, resume.stored_path)
+            from app.services.resume_parser import parse_resume
+            await parse_resume(resume, db)
+            await db.flush()
+            if not resume.anonymized_data:
+                raise ValueError(f"Resume {resume_id} re-parse failed (stored_path={resume.stored_path})")
 
     lang = language or "en"
     language_instruction = _LANGUAGE_INSTRUCTIONS.get(lang, _LANGUAGE_INSTRUCTIONS["en"])
@@ -74,14 +100,18 @@ async def score_candidate(
     )
 
     provider = get_llm_provider()
+    logger.info("Calling LLM for screening (model: %s)...", provider.model if hasattr(provider, 'model') else 'unknown')
     response = await provider.generate(
         prompt=prompt,
         system_prompt=SYSTEM_PROMPT,
         temperature=0.1,
+        max_tokens=8192,
         json_mode=True,
     )
+    logger.info("LLM response received (duration: %.0fms, tokens: %s)", response.duration_ms or 0, response.completion_tokens)
 
     if not response.parsed:
+        logger.error("LLM returned invalid JSON. Raw content: %s", response.content[:500])
         raise ValueError("LLM did not return valid scoring JSON")
 
     data = response.parsed
@@ -109,3 +139,4 @@ async def score_candidate(
     score.status = "completed"
 
     await db.commit()
+    logger.info("Screening completed for candidate_id=%s — score=%.1f recommendation=%s", candidate_id, score.overall_score, score.recommendation)

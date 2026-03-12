@@ -97,10 +97,11 @@ async def questions_chat_stream(data: QuestionsChatRequest):
                     message=data.message,
                 )
 
+                fallback_lang = "Chinese (Simplified)" if data.language == "zh" else "English"
                 lang_note = (
-                    "Respond in Chinese (Simplified)."
-                    if data.language == "zh"
-                    else "Respond in English."
+                    "Language rules: Detect the language the user writes in and reply in THAT language. "
+                    "If the user explicitly requests a specific language, use that language. "
+                    f"Only fall back to {fallback_lang} if you cannot determine the user's language."
                 )
                 system = f"{SYSTEM_PROMPT}\n\n{lang_note}"
 
